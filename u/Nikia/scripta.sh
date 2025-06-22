@@ -106,16 +106,17 @@ fi
 
 #sed -n '1p; $p;' $tf >&2    # show first and last line
 export PIPEDREAM_EXPORTS     # necessary for non-pipedream platforms
-bash "$tf" "$COUNTER"
+bash -x "$tf" "$COUNTER"
 
 ### -------------------------------------------------------------------------------------------------------------
-echo "#--- child script output ---" >&2
-cat $PIPEDREAM_EXPORTS >&2
-echo "#--- child script output ---" >&2
+#echo "#--- child script output ---" >&2
+#cat $PIPEDREAM_EXPORTS >&2
+#echo "#--- child script output ---" >&2
 
-#grep -E -q goodday_response "$PIPEDREAM_EXPORTS"   # don't use grep/egrep; it will throw an error
-< $PIPEDREAM_EXPORTS awk '/goodday_response/{exit 1}'
-if [ $? = 0 ]; then
+#found_goodday_response=$(grep goodday_response "$PIPEDREAM_EXPORTS")   # don't use grep/egrep; it will throw an error
+found_goodday_response=$(sed -n /goodday_response/p)
+#< $PIPEDREAM_EXPORTS awk '/goodday_response/{exit 1}'
+if [ -z "$found_goodday_response" ]; then
   echo "No new items stored" >&2 
 else # [ $? = 1 ]
   update_counter $(($COUNTER + 1))
