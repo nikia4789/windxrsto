@@ -106,7 +106,7 @@ fi
 
 #sed -n '1p; $p;' $tf >&2    # show first and last line
 export PIPEDREAM_EXPORTS     # necessary for non-pipedream platforms
-bash -x "$tf" "$COUNTER"
+bash "$tf" "$COUNTER"
 
 ### -------------------------------------------------------------------------------------------------------------
 #echo "#--- child script output ---" >&2
@@ -114,7 +114,7 @@ bash -x "$tf" "$COUNTER"
 #echo "#--- child script output ---" >&2
 
 #found_goodday_response=$(grep goodday_response "$PIPEDREAM_EXPORTS")   # don't use grep/egrep; it will throw an error
-found_goodday_response=$(sed -n /goodday_response/p)
+found_goodday_response=$(< $PIPEDREAM_EXPORTS sed -n /goodday_response/p)
 #< $PIPEDREAM_EXPORTS awk '/goodday_response/{exit 1}'
 if [ -z "$found_goodday_response" ]; then
   echo "No new items stored" >&2 
@@ -123,7 +123,7 @@ else # [ $? = 1 ]
   COUNTER=$(get_counter)
   echo "new COUNTER: $COUNTER" >&2
 fi
-echo OK
+echo script finished OK
 
 # the last line of the stdout is the return value
 # unless you write json to './result.json' or a string to './result.out'
