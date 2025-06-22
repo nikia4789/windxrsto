@@ -1,6 +1,8 @@
 # shellcheck shell=bash
 # arguments of the form X="$I" are parsed as parameters X of type string
 
+T="tcurl"; $T --help >/dev/null 2>&1 || T="curl"
+
 # import some environment variables from Variables and export them
 for x in \
  ENCRYPTION_SHARED_KEY \
@@ -16,7 +18,7 @@ for x in \
  WEBPAGE \
 
 do read "${x}" <  <(
-curl -s -H "Authorization: Bearer $WM_TOKEN" \
+$T -s -H "Authorization: Bearer $WM_TOKEN" \
   "$BASE_INTERNAL_URL/api/w/$WM_WORKSPACE/variables/get_value/u/Nikia/${x}" | jq -r .
 )
 export ${x} # make this variable available to children scripts
@@ -31,12 +33,12 @@ export PIPEDREAM_STEPS=/dev/null
 
 
 get_counter(){
-curl -s -H "Authorization: Bearer $WM_TOKEN" \
+$T -s -H "Authorization: Bearer $WM_TOKEN" \
   "$BASE_INTERNAL_URL/api/w/$WM_WORKSPACE/resources/get_value_interpolated/u/Nikia/stored_items_c_counter" | jq -r .value
 }
 
 update_counter(){  # $1: new value
-curl -s -H "Authorization: Bearer $WM_TOKEN" \
+$T -s -H "Authorization: Bearer $WM_TOKEN" \
   -X POST -H 'Content-Type: application/json' \
   "$BASE_INTERNAL_URL/api/w/$WM_WORKSPACE/resources/update/u/Nikia/stored_items_c_counter" -d '{"value":
     {"value":'"$1"'}
@@ -46,7 +48,7 @@ curl -s -H "Authorization: Bearer $WM_TOKEN" \
 
 COUNTER=$(get_counter)
 echo "old COUNTER: $COUNTER" >&2
-
+unset T
 #exit
 
 ### -------------------------------------------------------------------------------------------------------------
