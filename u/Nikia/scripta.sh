@@ -105,6 +105,7 @@ if [ ! -s "$tf" ]; then
 fi
 
 #sed -n '1p; $p;' $tf >&2    # show first and last line
+export PIPEDREAM_EXPORTS     # necessary for non-pipedream platforms
 bash "$tf" "$COUNTER"
 
 ### -------------------------------------------------------------------------------------------------------------
