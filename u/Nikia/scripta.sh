@@ -1,19 +1,19 @@
 # shellcheck shell=bash
 # arguments of the form X="$I" are parsed as parameters X of type string
 
-# import some environment variables from Variables
+# import some environment variables from Variables and export them
 for x in \
-ENCRYPTION_SHARED_KEY \
-GOODDAY_APITOKEN \
-GOODDAY_URL1 \
-GOODDAY_URL2 \
-GOODDAY_URL2_PROJECTID \
-GOODDAY_URL2_USERID \
-GOODDAY_URL3 \
-GOODDAY_URL4 \
-REDIS_KEY \
-REDIS_URL \
-WEBPAGE \
+ ENCRYPTION_SHARED_KEY \
+ GOODDAY_APITOKEN \
+ GOODDAY_URL1 \
+ GOODDAY_URL2 \
+ GOODDAY_URL2_PROJECTID \
+ GOODDAY_URL2_USERID \
+ GOODDAY_URL3 \
+ GOODDAY_URL4 \
+ REDIS_KEY \
+ REDIS_URL \
+ WEBPAGE \
 
 do read "${x}" <  <(
 curl -s -H "Authorization: Bearer $WM_TOKEN" \
@@ -23,9 +23,33 @@ export ${x} # make this variable available to children scripts
 #echo "$x": "${!x}" >&2
 done
 
+# pipedream specific stuff doesn't apply here
+umask 077;PIPEDREAM_EXPORTS=$(mktemp "/tmp/XXXXXX"); trap "\rm -f $PIPEDREAM_EXPORTS" 0;
+export PIPEDREAM_EXPORTS
+#export PIPEDREAM_EXPORTS=./result.out    # ./result.out is a special file
+export PIPEDREAM_STEPS=/dev/null
 
 
+get_counter(){
+curl -s -H "Authorization: Bearer $WM_TOKEN" \
+  "$BASE_INTERNAL_URL/api/w/$WM_WORKSPACE/resources/get_value_interpolated/u/Nikia/stored_items_c_counter" | jq -r .value
+}
 
+update_counter(){  # $1: new value
+curl -s -H "Authorization: Bearer $WM_TOKEN" \
+  -X POST -H 'Content-Type: application/json' \
+  "$BASE_INTERNAL_URL/api/w/$WM_WORKSPACE/resources/update/u/Nikia/stored_items_c_counter" -d '{"value":
+    {"value":'"$1"'}
+  }'
+  echo
+}
+
+COUNTER=$(get_counter)
+echo "old COUNTER: $COUNTER" >&2
+
+#exit
+
+### -------------------------------------------------------------------------------------------------------------
 #!/bin/sh
 # using environment variables:
 # GOODDAY_APITOKEN GOODDAY_URL4
@@ -41,8 +65,7 @@ export LANG='el_GR.UTF-8'
 export TZ='Europe/Athens'
 export PATH=/bin:/usr/bin:/usr/local/bin     # required in order to find openssl
 
-#COUNTER=$(< $PIPEDREAM_STEPS jq -r -M '.["get_counter_from_datastore"]["$return_value"]["tasks"]')
-COUNTER=133
+[ -s $PIPEDREAM_STEPS ] && COUNTER=$(< $PIPEDREAM_STEPS jq -r -M '.["get_counter_from_datastore"]["$return_value"]["tasks"]')
 echo >&2 "tasks created so far: $COUNTER"
 
 me=$(basename "$0"); umask 077;tf=$(mktemp "/tmp/${me}_XXXXXX");trap "\rm -f \"$tf\" " 0
@@ -81,10 +104,23 @@ fi
 
 #sed -n '1p; $p;' $tf >&2    # show first and last line
 bash "$tf" "$COUNTER"
-#exit
 
+### -------------------------------------------------------------------------------------------------------------
+echo "#--- child script output ---" >&2
+cat $PIPEDREAM_EXPORTS >&2
+echo "#--- child script output ---" >&2
+
+#grep -E -q goodday_response "$PIPEDREAM_EXPORTS"   # don't use grep/egrep; it will throw an error
+< $PIPEDREAM_EXPORTS awk '/goodday_response/{exit 1}'
+if [ $? = 0 ]; then
+  echo "No new items stored" >&2 
+else # [ $? = 1 ]
+  update_counter $(($COUNTER + 1))
+  COUNTER=$(get_counter)
+  echo "new COUNTER: $COUNTER" >&2
+fi
 
 
 # the last line of the stdout is the return value
 # unless you write json to './result.json' or a string to './result.out'
-echo "Hello $msg"
+#echo "Hello $msg"
