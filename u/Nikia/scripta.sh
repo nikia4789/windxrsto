@@ -122,7 +122,7 @@ else # [ $? = 1 ]
   COUNTER=$(get_counter)
   echo "new COUNTER: $COUNTER" >&2
 fi
-
+echo OK
 
 # the last line of the stdout is the return value
 # unless you write json to './result.json' or a string to './result.out'
